@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Local config / secrets
+.config.json
+.env
+.env.*
+
+# Output and runtime data
+output/
+logs/
+*.log
+
+# Editors
+.vscode/
+.idea/
+.DS_Store

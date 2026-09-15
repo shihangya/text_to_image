@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SenseNova U1.5 Lite — 图像生成与编辑</title>
+    <style>
+        /* ==================== 基础样式 ==================== */
+        :root {
+            --bg-deep: #08081a;
+            --bg-primary: #0d0d20;
+            --bg-surface: #151530;
+            --bg-elevated: #1c1c3d;
+            --bg-hover: #232350;
+            --border: #2a2a55;
+            --border-light: #3a3a6a;
+            --text-primary: #eaeaf5;
+            --text-secondary: #b0b0cc;
+            --text-muted: #7878a0;
+            --accent: #8b5cf6;
+            --accent-dark: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --success: #10b981;
+            --error: #f43f5e;
+            --warning: #f59e0b;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                         'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ==================== 背景装饰 ==================== */
+        .bg-glow {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ==================== 布局 ==================== */
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ==================== 顶部栏 ==================== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e0e0ff, var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .key-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            background: var(--bg-surface);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .key-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        /* ==================== 主体布局 ==================== */
+        .main {
+            display: grid;
+            grid-template-columns: 440px 1fr;
+            gap: 24px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ==================== 控制面板 ==================== */
+        .panel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-align: center;
+            border: none;
+            background: none;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            color: var(--accent-light);
+            background: var(--bg-primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            width: 60%;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .tab-icon {
+            margin-right: 6px;
+        }
+
+        .panel-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* ==================== 表单控件 ==================== */
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .field-label .count {
+            color: var(--text-muted);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        textarea, input[type="text"], input[type="url"] {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+            line-height: 1.6;
+        }
+
+        textarea:focus, input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea::placeholder, input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* API Key 输入框 */
+        .key-input-wrap {
+            position: relative;
+        }
+
+        .key-input-wrap input {
+            padding-right: 44px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .key-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .key-save-btn {
+            padding: 4px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .key-save-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .key-save-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .key-clear-btn {
+            padding: 4px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .key-clear-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+            background: rgba(244, 63, 94, 0.08);
+        }
+
+        .key-visibility {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .key-visibility:hover {
+            color: var(--text-secondary);
+        }
+
+        /* 分辨率选择 */
+        .res-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .res-btn {
+            padding: 10px 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .res-btn:hover {
+            border-color: var(--border-light);
+            background: var(--bg-hover);
+        }
+
+        .res-btn.active {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-light);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .res-btn .ratio {
+            display: block;
+            color: var(--text-muted);
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .res-btn.active .ratio {
+            color: var(--accent-light);
+            opacity: 0.7;
+        }
+
+        /* 格式选择 */
+        .format-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .format-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+        }
+
+        .format-btn:hover {
+            border-color: var(--border-light);
+        }
+
+        .format-btn.active {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-light);
+        }
+
+        /* 开关选项 */
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .option-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .option-label .desc {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .toggle.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle.active::after {
+            left: 20px;
+            background: white;
+        }
+
+        /* ==================== 图片上传区域（编辑模式） ==================== */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--bg-surface);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .upload-zone.has-image {
+            padding: 10px;
+            border-style: solid;
+            border-color: var(--border-light);
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .upload-zone.has-image .upload-icon {
+            display: none;
+        }
+
+        .upload-text {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .upload-text strong {
+            color: var(--accent-light);
+        }
+
+        .upload-preview {
+            max-width: 100%;
+            max-height: 160px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .upload-zone.has-image .upload-preview {
+            display: block;
+        }
+
+        .upload-zone.has-image .upload-text {
+            display: none;
+        }
+
+        .upload-clear {
+            display: none;
+            margin-top: 8px;
+            padding: 4px 12px;
+            font-size: 11px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .upload-zone.has-image .upload-clear {
+            display: inline-block;
+        }
+
+        /* 或分隔线 */
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* URL 输入 */
+        .url-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .url-input-row input {
+            flex: 1;
+        }
+
+        .url-apply-btn {
+            padding: 0 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .url-apply-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
+
+        /* ==================== 操作按钮 ==================== */
+        .action-area {
+            margin-top: auto;
+            padding-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-dark), #6366f1);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-area .generate-btn {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .generate-btn:hover {
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            box-shadow: 0 4px 20px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .generate-btn.loading .btn-spinner {
+            display: block;
+        }
+
+        .generate-btn.loading .btn-text {
+            display: none;
+        }
+
+        .generate-btn.loading .loading-text {
+            display: inline;
+        }
+
+        .loading-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==================== 预览区域 ==================== */
+        .preview-panel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            min-height: 48px;
+        }
+
+        .preview-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-info {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-light);
+            color: var(--text-primary);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .preview-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: auto;
+            position: relative;
+            min-height: 400px;
+        }
+
+        /* 占位状态 */
+        .placeholder {
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .placeholder-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.15;
+        }
+
+        .placeholder-text {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .placeholder-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        /* 加载状态 */
+        .loading-state {
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--bg-hover);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .loading-text-lg {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .loading-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .loading-timer {
+            font-size: 14px;
+            color: var(--accent-light);
+            margin-top: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* 图片显示 */
+        .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            display: none;
+        }
+
+        .preview-image.visible {
+            display: block;
+        }
+
+        /* 错误状态 */
+        .error-state {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .error-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--error);
+            margin-bottom: 8px;
+        }
+
+        .error-detail {
+            font-size: 13px;
+            color: var(--text-muted);
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        /* ==================== 通知 Toast ==================== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #e11d48, #f43f5e);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ==================== 隐藏面板 ==================== */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ==================== 滚动条 ==================== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 900px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                max-height: 55vh;
+            }
+
+            .preview-panel {
+                min-height: 400px;
+            }
+
+            .app {
+                padding: 12px 16px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+        }
+
+        /* 提示词示例标签 */
+        .prompt-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .example-tag {
+            padding: 4px 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .example-tag:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        /* 信息提示 */
+        .info-tip {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 6px 10px;
+            background: rgba(139, 92, 246, 0.06);
+            border-left: 2px solid var(--accent);
+            border-radius: 0 4px 4px 0;
+            line-height: 1.5;
+        }
+
+        /* ==================== 历史记录栏 ==================== */
+        .history-bar {
+            margin-top: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .history-grid {
+            display: flex;
+            gap: 10px;
+            padding: 12px;
+            overflow-x: auto;
+            min-height: 120px;
+            align-items: flex-start;
+        }
+
+        .history-grid::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .history-empty {
+            width: 100%;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px;
+        }
+
+        .history-item {
+            flex-shrink: 0;
+            width: 130px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 12px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .history-item.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .history-thumb {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            display: block;
+            background: var(--bg-hover);
+        }
+
+        .history-meta {
+            padding: 6px 8px;
+        }
+
+        .history-type-badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-light);
+            font-weight: 600;
+        }
+
+        .history-type-badge.edit {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+
+        .history-time {
+            display: block;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .history-item:hover .history-delete-btn {
+            opacity: 1;
+        }
+
+        .history-delete-btn:hover {
+            background: var(--error);
+        }
+
+        /* ==================== 批量数量选择 ==================== */
+        .batch-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .batch-btn {
+            flex: 1;
+            padding: 8px 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .batch-btn:hover {
+            border-color: var(--border-light);
+            background: var(--bg-hover);
+        }
+
+        .batch-btn.active {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-light);
+        }
+
+        /* ==================== 批量结果画廊 ==================== */
+        .gallery-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 8px;
+            padding: 10px 24px;
+            overflow-x: auto;
+            border-top: 1px solid var(--border);
+            background: var(--bg-surface);
+            z-index: 10;
+        }
+
+        .gallery-thumb {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            object-fit: cover;
+            transition: var(--transition);
+            background: var(--bg-hover);
+        }
+
+        .gallery-thumb:hover {
+            border-color: var(--border-light);
+            transform: translateY(-2px);
+        }
+
+        .gallery-thumb.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .gallery-strip.hidden {
+            display: none;
+        }
+
+        .preview-container.has-gallery {
+            padding-bottom: 80px;
+        }
+
+        /* ==================== 快捷键提示 ==================== */
+        .kbd-hint {
+            display: inline-block;
+            padding: 1px 5px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-light);
+            border-radius: 3px;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        /* ==================== 风格提示词弹窗 ==================== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 6, 18, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+        }
+
+        .style-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(960px, calc(100vw - 40px));
+            max-height: min(86vh, 760px);
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            z-index: 1001;
+            overflow: hidden;
+        }
+
+        .style-modal.hidden {
+            display: none;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-secondary);
+        }
+
+        .style-modal-target-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 11px;
+            margin-left: auto;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modal-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-panel h4 {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .style-result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .style-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .style-card-body {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .style-preview-grid {
+            display: grid;
+            grid-template-columns: minmax(180px, 240px) 1fr;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .style-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .style-pagination-info {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .style-pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .style-card:hover {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        .style-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .style-card-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .style-card-title strong {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .style-card-title span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .style-card-desc {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .style-reference-image {
+            width: 100%;
+            height: 112px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            display: block;
+            cursor: zoom-in;
+        }
+
+        .style-reference-image.zoomable:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .style-card-image {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            object-fit: cover;
+            background: var(--bg-primary);
+            flex: 0 0 auto;
+        }
+
+        .style-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 6, 18, 0.78);
+            backdrop-filter: blur(4px);
+            z-index: 1002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .style-lightbox.hidden {
+            display: none;
+        }
+
+        .style-lightbox-content {
+            position: relative;
+            width: min(86vw, 980px);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+            padding: 16px;
+        }
+
+        .style-lightbox-image {
+            max-width: 100%;
+            max-height: 72vh;
+            object-fit: contain;
+            border-radius: 10px;
+            background: var(--bg-surface);
+        }
+
+        .style-lightbox-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .style-lightbox-close {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .style-lightbox-close:hover {
+            color: var(--text-secondary);
+        }
+
+        .style-empty {
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 12px;
+            text-align: center;
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+        }
+
+        .prompt-output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-secondary);
+            min-height: 112px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .modal-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 13px;
+        }
+
+        .modal-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--accent-dark), #6366f1);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .modal-btn.primary:hover {
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal-backdrop hidden" id="styleModalBackdrop" onclick="closeStyleModal()"></div>
+    <div class="style-modal hidden" id="styleModal">
+        <div class="modal-header">
+            <h3>🎭 手绘风格提示词库</h3>
+            <span id="styleModalTargetTag" class="style-modal-target-tag hidden">编辑模式</span>
+            <button class="modal-close" onclick="closeStyleModal()" aria-label="关闭">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-panel">
+                <h4>风格编号 / 名称搜索</h4>
+                <div class="field">
+                    <input type="text" id="styleQuery" placeholder="输入编号、风格名、作者或关键词" oninput="onStyleQueryInput()">
+                </div>
+                <div class="style-result-list" id="styleResultList">
+                    <div class="style-empty">先输入搜索词，或点击推荐示例。</div>
+                </div>
+                <div class="style-pagination" id="stylePagination">
+                    <div class="style-pagination-info">
+                        <span>第</span>
+                        <strong id="stylePageCurrent">1</strong>
+                        <span>/</span>
+                        <strong id="stylePageTotal">1</strong>
+                        <span>页</span>
+                    </div>
+                    <div class="style-pagination-controls">
+                        <button class="modal-btn" id="stylePrevPageBtn" onclick="loadStylePage(Math.max(1, styleLibraryState.page - 1))" disabled>上一页</button>
+                        <button class="modal-btn" id="styleNextPageBtn" onclick="loadStylePage(Math.min(styleLibraryState.totalPages || 1, styleLibraryState.page + 1))" disabled>下一页</button>
+                    </div>
+                </div>
+                <div class="prompt-examples">
+                    <span class="example-tag" onclick="searchStyle('041')">041 绘本</span>
+                    <span class="example-tag" onclick="searchStyle('127')">127 东方</span>
+                    <span class="example-tag" onclick="searchStyle('18')">18 幽默漫画</span>
+                    <span class="example-tag" onclick="searchStyle('217')">217 补充风格</span>
+                </div>
+            </div>
+            <div class="modal-panel">
+                <h4>主题</h4>
+                <div class="field">
+                    <textarea id="styleTheme" placeholder="输入你的画面主题，例如：秋天的第一杯奶茶" oninput="updateSelectedStylePrompt()"></textarea>
+                </div>
+                <div class="style-preview-grid">
+                    <div class="field">
+                        <label class="field-label">风格参考图</label>
+                        <img id="styleReferenceImage" class="style-reference-image zoomable" alt="选中风格的参考图" style="display:none" onclick="openStyleImagePreview(this.src, this.alt)">
+                    </div>
+                    <div class="field">
+                        <label class="field-label">提示词预览</label>
+                        <div class="prompt-output" id="stylePromptOutput">选择左侧风格并输入主题后，这里会生成中英文提示词。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn" onclick="copyStylePrompt()">复制</button>
+            <button class="modal-btn" onclick="closeStyleModal()">关闭</button>
+            <button class="modal-btn primary" onclick="useStylePrompt()">填入提示词</button>
+        </div>
+    </div>
+
+    <div class="style-lightbox hidden" id="styleLightbox" onclick="closeStyleImagePreview()">
+        <div class="style-lightbox-content" onclick="event.stopPropagation()">
+            <div class="style-lightbox-meta">
+                <span id="styleLightboxTitle">参考图预览</span>
+                <button class="style-lightbox-close" onclick="closeStyleImagePreview()" aria-label="关闭预览">✕</button>
+            </div>
+            <img id="styleLightboxImage" class="style-lightbox-image" alt="风格参考图放大预览">
+        </div>
+    </div>
+
+    <div class="app">
+        <!-- ===== 顶部栏 ===== -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🎨</div>
+                <div class="logo-text">
+                    <h1>SenseNova U1.5 Lite</h1>
+                    <p>图像生成与编辑 · 公测免费去水印</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" onclick="openStyleModal()">🎭 风格提示词</button>
+                <div class="key-indicator">
+                    <div class="key-dot" id="keyDot"></div>
+                    <span id="keyLabel">未设置 API Key</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== 主体 ===== -->
+        <div class="main">
+            <!-- ===== 控制面板 ===== -->
+            <div class="panel">
+                <div class="panel-header">
+                    <button class="tab active" data-tab="generate" onclick="switchTab('generate')">
+                        <span class="tab-icon">✨</span> 文生图
+                    </button>
+                    <button class="tab" data-tab="edit" onclick="switchTab('edit')">
+                        <span class="tab-icon">✏️</span> 图片编辑
+                    </button>
+                </div>
+
+                <div class="panel-body">
+                    <!-- ===== API Key ===== -->
+                    <div class="field">
+                        <label class="field-label">API Key</label>
+                        <div class="key-input-wrap">
+                            <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" />
+                            <button class="key-visibility" onclick="toggleKeyVisibility()" id="keyVisBtn">👁</button>
+                        </div>
+                        <div class="key-actions">
+                            <button class="key-save-btn" id="saveKeyBtn" onclick="saveApiKey()">💾 保存</button>
+                            <button class="key-clear-btn" id="clearKeyBtn" onclick="clearApiKey()" style="display:none">🗑 清除</button>
+                        </div>
+                    </div>
+
+                    <!-- ===== 保存目录 ===== -->
+                    <div class="field">
+                        <label class="field-label">图片保存目录</label>
+                        <div class="url-input-row">
+                            <input type="text" id="saveDirInput" placeholder="./output" />
+                            <button class="url-apply-btn" onclick="saveSettings()">💾 保存</button>
+                        </div>
+                    </div>
+
+                    <!-- ===== 文生图模式 ===== -->
+                    <div id="generatePanel">
+                        <div class="field">
+                            <label class="field-label">
+                                提示词
+                                <span class="count" id="promptCount">0 / 2000</span>
+                            </label>
+                            <textarea id="prompt" placeholder="描述你想要的图像，例如：一个裹着塑料布的女性模特躺在沙发上，柔和晨光，写实摄影风格" maxlength="2000" oninput="updatePromptCount()"></textarea>
+                        </div>
+
+                        <div class="prompt-examples">
+                            <span class="example-tag" onclick="useExample('一个赛博朋克风格的未来城市，霓虹灯闪烁，雨夜，电影质感')">赛博朋克</span>
+                            <span class="example-tag" onclick="useExample('一只穿着宇航服的猫坐在月球上，眺望地球，写实风格')">太空猫</span>
+                            <span class="example-tag" onclick="useExample('一幅精美的水彩画，樱花盛开的日本庭院，春天，柔和光线')">水彩樱花</span>
+                            <span class="example-tag" onclick="useExample('产品摄影：高端护肤品玻璃瓶，极简背景，柔光，商业摄影风格')">产品摄影</span>
+                            <span class="example-tag" onclick="useExample('一幅中国水墨山水画，远山近水，云雾缭绕，留白意境')">水墨山水</span>
+                            <span class="example-tag" onclick="openStyleModal()">手绘风格库</span>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">
+                                负面提示词
+                                <span class="count" id="negPromptCount">0 / 2000</span>
+                            </label>
+                            <textarea id="negativePrompt" placeholder="描述你不想要的元素，例如：模糊、低质量、变形、水印" maxlength="2000" oninput="updateNegPromptCount()"></textarea>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">分辨率</label>
+                            <div class="res-grid" id="resGrid">
+                                <!-- 由 JS 生成 -->
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">输出格式</label>
+                            <div class="format-group" id="formatGroup">
+                                <button class="format-btn active" data-format="png">PNG</button>
+                                <button class="format-btn" data-format="jpeg">JPEG</button>
+                                <button class="format-btn" data-format="webp">WebP</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">生成数量</label>
+                            <div class="batch-group" id="batchGroup">
+                                <button class="batch-btn active" data-n="1">1</button>
+                                <button class="batch-btn" data-n="2">2</button>
+                                <button class="batch-btn" data-n="3">3</button>
+                                <button class="batch-btn" data-n="4">4</button>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <div class="option-item">
+                                <div class="option-label">
+                                    提示词自动润色
+                                    <span class="desc">开启后 AI 自动优化提示词细节</span>
+                                </div>
+                                <div class="toggle active" id="toggleExtend" onclick="toggleOption(this)"></div>
+                            </div>
+                            <div class="option-item">
+                                <div class="option-label">
+                                    添加水印
+                                    <span class="desc">公测期去水印免费，无需勾选</span>
+                                </div>
+                                <div class="toggle" id="toggleWatermark" onclick="toggleOption(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-tip">💡 选择 2K 分辨率可平衡质量与速度，4K 生成时间较长</div>
+
+                        <div class="action-area">
+                            <button class="generate-btn" id="generateBtn" onclick="handleGenerate()">
+                                <div class="btn-spinner"></div>
+                                <span class="btn-text">✨ 生成图片 <span class="kbd-hint">Ctrl+Enter</span></span>
+                                <span class="loading-text">生成中...</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ===== 图片编辑模式 ===== -->
+                    <div id="editPanel" class="hidden">
+                        <div class="field">
+                            <label class="field-label">源图片</label>
+                            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                                <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)" />
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text">拖拽图片到此处，或 <strong>点击上传</strong><br><small>支持 JPG / PNG / WebP</small></div>
+                                <img class="upload-preview" id="uploadPreview" />
+                                <button class="upload-clear" onclick="event.stopPropagation(); clearUpload()">清除</button>
+                            </div>
+                        </div>
+
+                        <div class="or-divider">或使用图片 URL</div>
+
+                        <div class="field">
+                            <div class="url-input-row">
+                                <input type="url" id="imageUrl" placeholder="https://example.com/image.png" />
+                                <button class="url-apply-btn" onclick="applyImageUrl()">加载</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">
+                                编辑指令
+                                <span class="count" id="editPromptCount">0 / 2000</span>
+                            </label>
+                            <textarea id="editPrompt" placeholder="描述你希望如何编辑图片，例如：把背景改成雪山，人物保持不变" maxlength="2000" oninput="updateEditPromptCount()"></textarea>
+                        </div>
+
+                        <div class="prompt-examples">
+                            <span class="example-tag" onclick="useEditExample('将背景替换为纯白色')">白底替换</span>
+                            <span class="example-tag" onclick="useEditExample('把天空改成晚霞，其他保持不变')">晚霞天空</span>
+                            <span class="example-tag" onclick="useEditExample('将图片转换为油画风格')">油画风格</span>
+                            <span class="example-tag" onclick="useEditExample('移除图片中的所有水印和文字')">去水印</span>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">
+                                负面提示词
+                                <span class="count" id="editNegPromptCount">0 / 2000</span>
+                            </label>
+                            <textarea id="editNegativePrompt" placeholder="描述你不想要的元素，例如：模糊、低质量、变形、水印" maxlength="2000" oninput="updateEditNegPromptCount()"></textarea>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">输出尺寸</label>
+                            <div class="res-grid" id="editResGrid">
+                                <!-- 由 JS 生成 -->
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <div class="option-item">
+                                <div class="option-label">
+                                    提示词自动润色
+                                    <span class="desc">开启后 AI 自动优化编辑指令</span>
+                                </div>
+                                <div class="toggle active" id="editToggleExtend" onclick="toggleOption(this)"></div>
+                            </div>
+                            <div class="option-item">
+                                <div class="option-label">
+                                    添加水印
+                                    <span class="desc">公测期去水印免费，无需勾选</span>
+                                </div>
+                                <div class="toggle" id="editToggleWatermark" onclick="toggleOption(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="info-tip">💡 支持拖拽上传本地图片或输入公网 URL，本地文件会自动转为 Base64</div>
+
+                        <div class="action-area">
+                            <button class="generate-btn" id="editBtn" onclick="handleEdit()">
+                                <div class="btn-spinner"></div>
+                                <span class="btn-text">✏️ 编辑图片 <span class="kbd-hint">Ctrl+Enter</span></span>
+                                <span class="loading-text">编辑中...</span>
+                            </button>
+                            <button class="action-btn" onclick="openStyleModalForEdit()">🎭 风格提示词</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 预览区域 ===== -->
+            <div class="preview-panel">
+                <div class="preview-toolbar">
+                    <div class="preview-title">
+                        <span>🖼️</span>
+                        <span id="previewTitle">预览</span>
+                    </div>
+                    <div class="preview-actions">
+                        <span class="preview-info" id="previewInfo"></span>
+                        <button class="action-btn" id="downloadBtn" onclick="downloadImage()" disabled>⬇️ 下载</button>
+                        <button class="action-btn" id="newBtn" onclick="clearPreview()">🔄 新图</button>
+                    </div>
+                </div>
+
+                <div class="preview-container" id="previewContainer">
+                    <div class="placeholder" id="placeholderState">
+                        <div class="placeholder-icon">🎨</div>
+                        <div class="placeholder-text">等待生成</div>
+                        <div class="placeholder-sub">输入提示词并点击生成按钮</div>
+                    </div>
+
+                    <div class="loading-state hidden" id="loadingState">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text-lg" id="loadingTitle">正在生成...</div>
+                        <div class="loading-sub" id="loadingSubtitle">通常需要 30-60 秒</div>
+                        <div class="loading-sub" id="loadingSub2"></div>
+                        <div class="loading-timer" id="loadingTimer">00:00</div>
+                    </div>
+
+                    <div class="error-state hidden" id="errorState">
+                        <div class="error-icon">❌</div>
+                        <div class="error-title" id="errorTitle">生成失败</div>
+                        <div class="error-detail" id="errorDetail"></div>
+                    </div>
+
+                    <img class="preview-image" id="previewImage" alt="生成结果" />
+                    <div class="gallery-strip hidden" id="galleryStrip"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 历史记录栏 ===== -->
+        <div class="history-bar" id="historyBar">
+            <div class="history-header">
+                <span class="history-title">📷 历史记录 <span class="history-count" id="historyCount"></span></span>
+                <div class="history-actions">
+                    <button class="action-btn" onclick="refreshHistory()">🔄 刷新</button>
+                    <button class="action-btn" onclick="clearAllHistory()">🗑 清除全部</button>
+                </div>
+            </div>
+            <div class="history-grid" id="historyGrid">
+                <div class="history-empty" id="historyEmpty">暂无历史记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局状态 ====================
+        const state = {
+            mode: 'generate',  // 'generate' | 'edit'
+            selectedSize: '2720x1536',
+            selectedFormat: 'png',
+            editSelectedSize: 'auto',
+            editImageData: null,  // data URL or image URL
+            currentImage: null,  // 当前预览的图片 data URL 或服务 URL
+            currentFilename: null,  // 当前图片的文件名（用于下载）
+            currentImages: [],     // 批量生成所有图片 (data URL / 服务端 URL)
+            currentImageUrls: [],  // 批量生成的服务端 URL 列表
+            currentFilenames: [],  // 批量生成的文件名列表
+            batchCount: 1,
+            timer: null,
+            timerSeconds: 0,
+        };
+
+        // 分辨率配置（与后端一致）
+        const RESOLUTIONS = [
+            { value: '2048x2048', label: '2K 1:1', ratio: '1:1' },
+            { value: '2720x1536', label: '2K 16:9', ratio: '16:9' },
+            { value: '1536x2720', label: '2K 9:16', ratio: '9:16' },
+            { value: '1664x2496', label: '2K 2:3', ratio: '2:3' },
+            { value: '2496x1664', label: '2K 3:2', ratio: '3:2' },
+            { value: '4096x4096', label: '4K 1:1', ratio: '1:1' },
+        ];
+
+        const EDIT_SIZES = [
+            { value: 'auto', label: '自动适配', ratio: '跟随原图' },
+            { value: '2048x2048', label: '2K 1:1', ratio: '1:1' },
+            { value: '2720x1536', label: '2K 16:9', ratio: '16:9' },
+            { value: '1536x2720', label: '2K 9:16', ratio: '9:16' },
+            { value: '1664x2496', label: '2K 2:3', ratio: '2:3' },
+            { value: '2496x1664', label: '2K 3:2', ratio: '3:2' },
+        ];
+
+        const FORMAT_MIME_MAP = {
+            'png': 'image/png',
+            'jpeg': 'image/jpeg',
+            'webp': 'image/webp',
+        };
+
+        // ==================== 工具函数 ====================
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            renderResolutions('resGrid', RESOLUTIONS, 'selectedSize', 'generate');
+            renderResolutions('editResGrid', EDIT_SIZES, 'editSelectedSize', 'edit');
+
+            // 格式选择
+            document.querySelectorAll('#formatGroup .format-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#formatGroup .format-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.selectedFormat = btn.dataset.format;
+                });
+            });
+
+            // 从后端加载已保存的 API Key
+            loadSavedKey();
+
+            // 拖拽上传
+            const zone = document.getElementById('uploadZone');
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('dragover');
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    processFile(file);
+                }
+            });
+
+            // 批量数量选择
+            document.querySelectorAll('#batchGroup .batch-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#batchGroup .batch-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.batchCount = parseInt(btn.dataset.n);
+                });
+            });
+
+            // 快捷键: Ctrl+Enter 生成/编辑, Esc 清除预览
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    if (state.mode === 'generate') {
+                        handleGenerate();
+                    } else {
+                        handleEdit();
+                    }
+                    e.preventDefault();
+                }
+                if (e.key === 'Escape' &&
+                    document.activeElement.tagName !== 'TEXTAREA' &&
+                    document.activeElement.tagName !== 'INPUT') {
+                    clearPreview();
+                }
+            });
+        });
+
+        // ==================== 渲染分辨率网格 ====================
+        function renderResolutions(containerId, sizes, stateKey, mode) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = sizes.map((s, i) => `
+                <button class="res-btn ${i === 0 ? 'active' : ''}" data-value="${s.value}" onclick="selectSize(this, '${s.value}', '${stateKey}', '${mode}')">
+                    ${s.label}
+                    <span class="ratio">${s.ratio}</span>
+                </button>
+            `).join('');
+            state[stateKey] = sizes[0].value;
+        }
+
+        function selectSize(btn, value, stateKey, mode) {
+            const grid = btn.parentElement;
+            grid.querySelectorAll('.res-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state[stateKey] = value;
+        }
+
+        // ==================== 标签切换 ====================
+        function switchTab(tab) {
+            state.mode = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById('generatePanel').classList.toggle('hidden', tab !== 'generate');
+            document.getElementById('editPanel').classList.toggle('hidden', tab !== 'edit');
+        }
+
+        // ==================== API Key 管理 ====================
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKey');
+            const btn = document.getElementById('keyVisBtn');
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🔒';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁';
+            }
+        }
+
+        // 页面加载时从后端获取已保存的配置
+        async function loadSavedKey() {
+            try {
+                const resp = await fetch('/api/config');
+                const data = await resp.json();
+                // 加载 API Key
+                if (data.saved && data.api_key) {
+                    document.getElementById('apiKey').value = data.api_key;
+                    updateKeyIndicator(true);
+                } else {
+                    updateKeyIndicator(false);
+                }
+                // 加载保存目录
+                if (data.save_dir) {
+                    document.getElementById('saveDirInput').value = data.save_dir;
+                }
+            } catch (e) {
+                updateKeyIndicator(false);
+            }
+        }
+
+        // 保存 API Key 到后端
+        async function saveApiKey() {
+            const key = document.getElementById('apiKey').value.trim();
+            if (!key) {
+                showToast('请输入 API Key 后再保存', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('saveKeyBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 保存中...';
+
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: key }),
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    updateKeyIndicator(true);
+                    showToast('API Key 已保存', 'success');
+                } else {
+                    showToast(data.detail || '保存失败', 'error');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 保存';
+            }
+        }
+
+        // 清除已保存的 API Key
+        async function clearApiKey() {
+            const btn = document.getElementById('clearKeyBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 清除中...';
+
+            try {
+                await fetch('/api/config', { method: 'DELETE' });
+                document.getElementById('apiKey').value = '';
+                updateKeyIndicator(false);
+                showToast('API Key 已清除', 'info');
+            } catch (e) {
+                showToast('清除失败: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🗑 清除';
+            }
+        }
+
+        function updateKeyIndicator(isSaved) {
+            const key = document.getElementById('apiKey').value.trim();
+            const dot = document.getElementById('keyDot');
+            const label = document.getElementById('keyLabel');
+            const clearBtn = document.getElementById('clearKeyBtn');
+
+            if (isSaved && key) {
+                dot.classList.add('active');
+                label.textContent = 'API Key 已保存';
+                clearBtn.style.display = '';
+            } else if (key) {
+                dot.classList.remove('active');
+                label.textContent = 'API Key 已输入（未保存）';
+                clearBtn.style.display = 'none';
+            } else {
+                dot.classList.remove('active');
+                label.textContent = '未设置 API Key';
+                clearBtn.style.display = 'none';
+            }
+        }
+
+        // API Key 输入监听
+        document.getElementById('apiKey').addEventListener('input', () => updateKeyIndicator(false));
+
+        // ==================== 开关控制 ====================
+        function toggleOption(el) {
+            el.classList.toggle('active');
+        }
+
+        // ==================== 提示词 ====================
+        function updatePromptCount() {
+            const val = document.getElementById('prompt').value;
+            document.getElementById('promptCount').textContent = `${val.length} / 2000`;
+        }
+
+        function updateEditPromptCount() {
+            const val = document.getElementById('editPrompt').value;
+            document.getElementById('editPromptCount').textContent = `${val.length} / 2000`;
+        }
+
+        function useExample(text) {
+            document.getElementById('prompt').value = text;
+            updatePromptCount();
+        }
+
+        function useEditExample(text) {
+            document.getElementById('editPrompt').value = text;
+            updateEditPromptCount();
+        }
+
+        // ==================== 手绘风格提示词库 ====================
+        const styleLibraryState = {
+            styles: [],
+            selectedStyle: null,
+            currentPrompt: null,
+            page: 1,
+            pageSize: 50,
+            totalPages: 0,
+            total: 0,
+            target: 'generate',
+        };
+
+        async function openStyleModal(target = 'generate') {
+            styleLibraryState.target = target;
+            document.getElementById('styleModalBackdrop').classList.remove('hidden');
+            document.getElementById('styleModal').classList.remove('hidden');
+            document.getElementById('styleModalTargetTag').classList.toggle('hidden', target !== 'edit');
+            const promptValue = (target === 'edit' ? document.getElementById('editPrompt') : document.getElementById('prompt')).value.trim();
+            const themeInput = document.getElementById('styleTheme');
+            if (promptValue && !themeInput.value.trim()) {
+                themeInput.value = promptValue;
+                themeInput.dispatchEvent(new Event('input'));
+            }
+            await onStyleQueryInput();
+        }
+
+        function openStyleModalForEdit() {
+            openStyleModal('edit');
+        }
+
+        function closeStyleModal() {
+            document.getElementById('styleModalBackdrop').classList.add('hidden');
+            document.getElementById('styleModal').classList.add('hidden');
+            document.getElementById('styleModalTargetTag').classList.add('hidden');
+        }
+
+        async function onStyleQueryInput() {
+            styleLibraryState.page = 1;
+            await loadStylePage(1);
+        }
+
+        async function loadStylePage(page) {
+            const query = document.getElementById('styleQuery').value.trim();
+            const list = document.getElementById('styleResultList');
+            const targetPage = Math.max(1, page || styleLibraryState.page || 1);
+            let url = `/api/styles?page=${targetPage}&page_size=${styleLibraryState.pageSize}`;
+            if (query) url += `&q=${encodeURIComponent(query)}`;
+
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('风格库加载失败');
+                const data = await resp.json();
+                styleLibraryState.styles = data.items || [];
+                styleLibraryState.page = data.page || targetPage;
+                styleLibraryState.totalPages = data.total_pages || 0;
+                styleLibraryState.total = data.total || 0;
+                renderStyleResults();
+                updateStylePagination();
+            } catch (e) {
+                list.innerHTML = `<div class="style-empty">加载失败：${escapeHtml(e.message)}</div>`;
+            }
+        }
+
+        function updateStylePagination() {
+            const currentEl = document.getElementById('stylePageCurrent');
+            const totalEl = document.getElementById('stylePageTotal');
+            const prevBtn = document.getElementById('stylePrevPageBtn');
+            const nextBtn = document.getElementById('styleNextPageBtn');
+            if (!currentEl || !totalEl) return;
+
+            currentEl.textContent = String(styleLibraryState.page || 1);
+            totalEl.textContent = String(styleLibraryState.totalPages || 1);
+            if (prevBtn) prevBtn.disabled = (styleLibraryState.page || 1) <= 1;
+            if (nextBtn) nextBtn.disabled = (styleLibraryState.page || 1) >= (styleLibraryState.totalPages || 1);
+        }
+
+        function searchStyle(value) {
+            document.getElementById('styleQuery').value = value;
+            onStyleQueryInput();
+        }
+
+        function renderStyleResults() {
+            const list = document.getElementById('styleResultList');
+            const styles = styleLibraryState.styles || [];
+            if (!styles.length) {
+                list.innerHTML = '<div class="style-empty">没有找到匹配的风格。</div>';
+                return;
+            }
+            list.innerHTML = styles.map(style => `
+                <div class="style-card ${styleLibraryState.selectedStyle && styleLibraryState.selectedStyle.number === style.number ? 'active' : ''}" onclick="selectStyle('${escapeHtml(style.number)}')">
+                    <img class="style-card-image" src="${style.image_url || `/style-images/${escapeHtml(style.number)}.png`}" alt="${escapeHtml(style.generation_name)} 参考图" loading="lazy" onerror="this.style.display='none'" onclick="event.stopPropagation(); openStyleImagePreview('${style.image_url || `/style-images/${escapeHtml(style.number)}.png`}', '${escapeHtml(style.generation_name)}')">
+                    <div class="style-card-body">
+                        <div class="style-card-title">
+                            <strong>#${escapeHtml(style.number)} · ${escapeHtml(style.generation_name)}</strong>
+                            <span>${escapeHtml(style.group)}</span>
+                        </div>
+                        <div class="style-card-desc">${escapeHtml(style.traits)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectStyle(number) {
+            const style = (styleLibraryState.styles || []).find(s => s.number === number) || null;
+            styleLibraryState.selectedStyle = style;
+            renderStyleResults();
+            updateSelectedStylePrompt();
+        }
+
+        function openStyleImagePreview(src, title) {
+            if (!src) return;
+            document.getElementById('styleLightboxImage').src = src;
+            document.getElementById('styleLightboxTitle').textContent = title || '参考图预览';
+            document.getElementById('styleLightbox').classList.remove('hidden');
+        }
+
+        function closeStyleImagePreview() {
+            document.getElementById('styleLightbox').classList.add('hidden');
+        }
+
+        async function updateSelectedStylePrompt() {
+            const output = document.getElementById('stylePromptOutput');
+            const styleImage = document.getElementById('styleReferenceImage');
+            const style = styleLibraryState.selectedStyle;
+            const theme = document.getElementById('styleTheme').value.trim();
+
+            if (styleImage) {
+                styleImage.style.display = style ? 'block' : 'none';
+                if (style && style.image_url) {
+                    styleImage.src = style.image_url;
+                }
+            }
+
+            if (!style) {
+                output.textContent = '先选择左侧风格，再生成提示词。';
+                styleLibraryState.currentPrompt = null;
+                return;
+            }
+            if (!theme) {
+                output.textContent = '请先输入画面主题。';
+                styleLibraryState.currentPrompt = null;
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/prompt-style', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ style_number: style.number, theme }),
+                });
+                if (!resp.ok) {
+                    const data = await resp.json().catch(() => ({}));
+                    throw new Error(data.detail || '提示词生成失败');
+                }
+                const data = await resp.json();
+                styleLibraryState.currentPrompt = data.prompt;
+                output.textContent = data.prompt;
+            } catch (e) {
+                styleLibraryState.currentPrompt = null;
+                output.textContent = `提示词生成失败：${e.message}`;
+            }
+        }
+
+        function useStylePrompt() {
+            if (!styleLibraryState.currentPrompt) {
+                showToast('请先生成提示词', 'error');
+                return;
+            }
+            if (styleLibraryState.target === 'edit') {
+                document.getElementById('editPrompt').value = styleLibraryState.currentPrompt;
+                updateEditPromptCount();
+            } else {
+                document.getElementById('prompt').value = styleLibraryState.currentPrompt;
+                updatePromptCount();
+            }
+            closeStyleModal();
+            showToast('已填入提示词', 'success');
+        }
+
+        function copyStylePrompt() {
+            if (!styleLibraryState.currentPrompt) {
+                showToast('请先生成提示词', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(styleLibraryState.currentPrompt).then(() => {
+                showToast('已复制提示词', 'success');
+            }).catch(() => {
+                showToast('复制失败', 'error');
+            });
+        }
+
+        // ==================== 文件上传 ====================
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) processFile(file);
+        }
+
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('请选择图片文件', 'error');
+                return;
+            }
+
+            if (file.size > 20 * 1024 * 1024) {
+                showToast('图片大小不能超过 20MB', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                state.editImageData = e.target.result;
+                const preview = document.getElementById('uploadPreview');
+                preview.src = e.target.result;
+                document.getElementById('uploadZone').classList.add('has-image');
+                showToast('图片已加载', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyImageUrl() {
+            const url = document.getElementById('imageUrl').value.trim();
+            if (!url) {
+                showToast('请输入图片 URL', 'error');
+                return;
+            }
+
+            // 验证是否为 URL
+            if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('data:')) {
+                showToast('请输入有效的图片 URL', 'error');
+                return;
+            }
+
+            state.editImageData = url;
+            const preview = document.getElementById('uploadPreview');
+            preview.src = url;
+            preview.onerror = () => {
+                showToast('图片 URL 加载失败，请检查地址', 'error');
+                state.editImageData = null;
+            };
+            preview.onload = () => {
+                document.getElementById('uploadZone').classList.add('has-image');
+                showToast('图片 URL 已加载', 'success');
+            };
+        }
+
+        function clearUpload() {
+            state.editImageData = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imageUrl').value = '';
+            document.getElementById('uploadPreview').src = '';
+            document.getElementById('uploadZone').classList.remove('has-image');
+        }
+
+        // ==================== 核心操作：生成 ====================
+        async function handleGenerate() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('prompt').value.trim();
+            const negativePrompt = document.getElementById('negativePrompt').value.trim();
+
+            if (!prompt) { showToast('请输入提示词', 'error'); return; }
+
+            const btn = document.getElementById('generateBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            const total = state.batchCount;
+            const tip = total > 1 ? `共 ${total} 张，单张预计 30-60 秒` : '通常需要 30-60 秒';
+            showLoading(total > 1 ? `正在生成 1/${total}...` : '正在生成图片...', tip);
+
+            const basePayload = {
+                api_key: apiKey,
+                prompt: prompt,
+                negative_prompt: negativePrompt || null,
+                size: state.selectedSize,
+                output_format: state.selectedFormat,
+                n: 1,
+                watermark: document.getElementById('toggleWatermark').classList.contains('active'),
+                prompt_extend: document.getElementById('toggleExtend').classList.contains('active'),
+            };
+
+            try {
+                const allImages = [];
+                const allImageUrls = [];
+                const allFilenames = [];
+                let totalElapsed = 0;
+
+                for (let i = 0; i < total; i += 1) {
+                    const index = i + 1;
+                    document.getElementById('loadingTitle').textContent = `正在生成 ${index}/${total}...`;
+                    document.getElementById('loadingSubtitle').textContent = total > 1 ? `第 ${index} 张，预计还需 30-60 秒` : '正在生成图片';
+
+                    const resp = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(basePayload),
+                    });
+
+                    const data = await resp.json();
+
+                    if (!resp.ok) {
+                        throw new Error(data.detail || `请求失败 (${resp.status})`);
+                    }
+
+                    if (!data.images || data.images.length === 0) {
+                        throw new Error(`第 ${index} 张返回空结果`);
+                    }
+
+                    allImages.push(...data.images);
+                    allImageUrls.push(...(data.image_urls || []));
+                    allFilenames.push(...(data.filenames || []));
+                    totalElapsed += Number(data.elapsed || 0);
+
+                    const sub2 = document.getElementById('loadingSub2');
+                    if (sub2) {
+                        sub2.textContent = `已完成 ${allImages.length}/${total} 张`;
+                    }
+                }
+
+                state.currentImages = allImages;
+                state.currentImageUrls = allImageUrls;
+                state.currentFilenames = allFilenames;
+                state.currentImage = allImageUrls[0] || allImages[0];
+                state.currentFilename = allFilenames[0] || null;
+
+                const title = `生成 · ${basePayload.size}${total > 1 ? ` · ${allImages.length} 张` : ''}`;
+                showImage(state.currentImage, title, totalElapsed);
+
+                if (allImages.length > 1) {
+                    showGallery(allImages, allImageUrls, allFilenames);
+                } else {
+                    hideGallery();
+                }
+
+                if (allFilenames.length > 0) refreshHistory();
+            } catch (err) {
+                showError('生成失败', err.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                stopTimer();
+            }
+        }
+
+        // ==================== 核心操作：编辑 ====================
+        async function handleEdit() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('editPrompt').value.trim();
+            const negativePrompt = document.getElementById('editNegativePrompt').value.trim();
+
+            if (!state.editImageData) { showToast('请先上传图片或输入图片 URL', 'error'); return; }
+            if (!prompt) { showToast('请输入编辑指令', 'error'); return; }
+
+            const btn = document.getElementById('editBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            showLoading('正在编辑图片...', '通常需要 30-60 秒');
+
+            const payload = {
+                api_key: apiKey,
+                image_url: state.editImageData,
+                prompt: prompt,
+                negative_prompt: negativePrompt || null,
+                size: state.editSelectedSize,
+                watermark: document.getElementById('editToggleWatermark').classList.contains('active'),
+                prompt_extend: document.getElementById('editToggleExtend').classList.contains('active'),
+            };
+
+            try {
+                const resp = await fetch('/api/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(data.detail || `请求失败 (${resp.status})`);
+                }
+
+                if (data.images && data.images.length > 0) {
+                    state.currentImages = data.images;
+                    state.currentImageUrls = data.image_urls || [];
+                    state.currentFilenames = data.filenames || [];
+                    state.currentImage = (data.image_urls && data.image_urls[0]) || data.images[0];
+                    state.currentFilename = (data.filenames && data.filenames[0]) || null;
+
+                    showImage(state.currentImage, `编辑 · ${payload.size}`, data.elapsed);
+                    hideGallery();
+                    if (data.saved) refreshHistory();
+                } else {
+                    throw new Error('API 返回空结果');
+                }
+
+            } catch (err) {
+                showError('编辑失败', err.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                stopTimer();
+            }
+        }
+
+        // ==================== 预览控制 ====================
+        function showLoading(title, subtitle) {
+            hideAllPreviewStates();
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('loadingTitle').textContent = title;
+            document.getElementById('loadingSubtitle').textContent = subtitle;
+            const sub2 = document.getElementById('loadingSub2');
+            if (sub2) sub2.textContent = '';
+            startTimer();
+        }
+
+        function showError(title, detail) {
+            hideAllPreviewStates();
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorDetail').textContent = detail;
+            document.getElementById('downloadBtn').disabled = true;
+        }
+
+        function showImage(dataUrl, title, elapsed, isHistory) {
+            hideAllPreviewStates();
+            const img = document.getElementById('previewImage');
+            // 后端返回纯 base64 字符串时补 data URL 前缀；相对路径 /images/... 直接可用
+            let src = dataUrl;
+            if (typeof dataUrl === 'string' && !dataUrl.startsWith('data:') && !dataUrl.startsWith('http') && !dataUrl.startsWith('/')) {
+                const mime = FORMAT_MIME_MAP[state.selectedFormat] || 'image/png';
+                src = 'data:' + mime + ';base64,' + dataUrl;
+            }
+            img.src = src;
+            img.classList.add('visible');
+            document.getElementById('previewTitle').textContent = title;
+            const sizeInfo = src.startsWith('data:')
+                ? `${(src.length * 0.75 / 1024 / 1024).toFixed(1)} MB`
+                : '';
+            document.getElementById('previewInfo').textContent = elapsed ? `${elapsed}s${sizeInfo ? ' · ' + sizeInfo : ''}` : '';
+            document.getElementById('downloadBtn').disabled = false;
+            if (!isHistory) showToast('生成成功！', 'success');
+        }
+
+        function hideAllPreviewStates() {
+            document.getElementById('placeholderState').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('previewImage').classList.remove('visible');
+        }
+
+        function clearPreview() {
+            state.currentImage = null;
+            state.currentFilename = null;
+            state.currentImages = [];
+            state.currentImageUrls = [];
+            state.currentFilenames = [];
+            hideAllPreviewStates();
+            hideGallery();
+            document.getElementById('placeholderState').classList.remove('hidden');
+            document.getElementById('previewTitle').textContent = '预览';
+            document.getElementById('previewInfo').textContent = '';
+            document.getElementById('downloadBtn').disabled = true;
+        }
+
+        function downloadImage() {
+            if (!state.currentImage) return;
+
+            let src = state.currentImage;
+            let filename = state.currentFilename || 'sensenova_output';
+            const ext = filename.split('.').pop() || (state.selectedFormat || 'png');
+            const downloadName = filename.replace(/\.[^.]+$/, '') + '.' + ext;
+
+            // 纯 base64 字符串 → 补 data URL 前缀
+            if (!src.startsWith('data:') && !src.startsWith('http') && !src.startsWith('/')) {
+                const mime = FORMAT_MIME_MAP[ext] || 'image/png';
+                src = 'data:' + mime + ';base64,' + src;
+            }
+
+            // 相对路径 URL（如 /images/gen_xxx.png）或绝对 URL，需要 fetch 转 blob
+            if (src.startsWith('http') || src.startsWith('/')) {
+                fetch(src)
+                    .then(r => r.blob())
+                    .then(blob => {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = downloadName;
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    })
+                    .catch(() => {
+                        showToast('下载失败', 'error');
+                    });
+                return;
+            }
+
+            // data URL 直接下载
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = downloadName;
+            a.click();
+        }
+
+        // ==================== 计时器 ====================
+        function startTimer() {
+            state.timerSeconds = 0;
+            updateTimerDisplay();
+            state.timer = setInterval(() => {
+                state.timerSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const m = String(Math.floor(state.timerSeconds / 60)).padStart(2, '0');
+            const s = String(state.timerSeconds % 60).padStart(2, '0');
+            document.getElementById('loadingTimer').textContent = `${m}:${s}`;
+        }
+
+        // ==================== 批量画廊 ====================
+        function showGallery(images, imageUrls, filenames) {
+            const strip = document.getElementById('galleryStrip');
+            const container = document.getElementById('previewContainer');
+            strip.classList.remove('hidden');
+            container.classList.add('has-gallery');
+
+            // 构建缩略图列表：优先使用服务端 URL，否则用 base64 data URL
+            const items = images.map((img, i) => {
+                let src = (imageUrls && imageUrls[i]) || img;
+                if (!src.startsWith('data:') && !src.startsWith('http') && !src.startsWith('/')) {
+                    const mime = FORMAT_MIME_MAP[state.selectedFormat] || 'image/png';
+                    src = 'data:' + mime + ';base64,' + src;
+                }
+                return `<img class="gallery-thumb ${i === 0 ? 'active' : ''}" src="${escapeHtml(src)}" onclick="selectGalleryImage(${i})" title="第 ${i + 1} 张" alt="第 ${i + 1} 张" />`;
+            });
+            strip.innerHTML = items.join('');
+        }
+
+        function hideGallery() {
+            const strip = document.getElementById('galleryStrip');
+            const container = document.getElementById('previewContainer');
+            strip.classList.add('hidden');
+            strip.innerHTML = '';
+            container.classList.remove('has-gallery');
+        }
+
+        function selectGalleryImage(index) {
+            if (index < 0 || index >= state.currentImages.length) return;
+
+            state.currentImage = state.currentImages[index];
+            state.currentFilename = state.currentFilenames[index] || null;
+
+            const title = `生成 · ${state.selectedSize} · ${index + 1}/${state.currentImages.length}`;
+            showImage(state.currentImage, title, null, true);
+
+            // 更新画廊高亮
+            document.querySelectorAll('.gallery-thumb').forEach((el, i) => {
+                el.classList.toggle('active', i === index);
+            });
+        }
+
+        // ==================== 负面提示词计数 ====================
+        function updateNegPromptCount() {
+            const val = document.getElementById('negativePrompt').value;
+            document.getElementById('negPromptCount').textContent = `${val.length} / 2000`;
+        }
+
+        function updateEditNegPromptCount() {
+            const val = document.getElementById('editNegativePrompt').value;
+            document.getElementById('editNegPromptCount').textContent = `${val.length} / 2000`;
+        }
+
+        // ==================== Toast 通知 ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            const icon = icons[type] || 'ℹ️';
+            toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ==================== 设置管理 ====================
+        async function saveSettings() {
+            const saveDir = document.getElementById('saveDirInput').value.trim();
+            if (!saveDir) {
+                showToast('请输入保存目录路径', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('[onclick="saveSettings()"]');
+            btn.disabled = true;
+            btn.textContent = '⏳ 保存中...';
+
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ save_dir: saveDir }),
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showToast('保存目录已更新', 'success');
+                } else {
+                    showToast(data.detail || '保存失败', 'error');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 保存';
+            }
+        }
+
+        // ==================== 历史记录 ====================
+        async function refreshHistory() {
+            try {
+                const resp = await fetch('/api/history');
+                const data = await resp.json();
+                renderHistory(data.items || []);
+            } catch (e) {
+                console.error('加载历史失败', e);
+            }
+        }
+
+        function renderHistory(items) {
+            const grid = document.getElementById('historyGrid');
+            const countEl = document.getElementById('historyCount');
+            const emptyEl = document.getElementById('historyEmpty');
+
+            if (!items || items.length === 0) {
+                grid.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+                countEl.textContent = '';
+                return;
+            }
+
+            countEl.textContent = `(${items.length})`;
+            grid.innerHTML = items.map(item => {
+                const typeLabel = item.type === 'generate' ? '✨ 生成' : '✏️ 编辑';
+                const typeClass = item.type === 'edit' ? 'edit' : '';
+                const timeShort = item.created_at ? item.created_at.replace(/.*\s/, '') : '';
+                const thumbSrc = item.thumbnail_url || item.image_url;
+                return `
+                    <div class="history-item" data-id="${escapeHtml(item.id)}" onclick="viewHistoryItem('${escapeHtml(item.id)}')">
+                        <img class="history-thumb" src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(item.prompt || '')}" loading="lazy" />
+                        <button class="history-delete-btn" onclick="event.stopPropagation(); deleteHistoryItem('${escapeHtml(item.id)}')" title="删除">✕</button>
+                        <div class="history-meta">
+                            <span class="history-type-badge ${typeClass}">${typeLabel}</span>
+                            <span class="history-time">${escapeHtml(timeShort)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewHistoryItem(id) {
+            try {
+                const resp = await fetch('/api/history');
+                const data = await resp.json();
+                const item = (data.items || []).find(i => i.id === id);
+                if (!item) {
+                    showToast('记录不存在', 'error');
+                    return;
+                }
+
+                // 高亮当前项
+                document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+                document.querySelector(`.history-item[data-id="${escapeHtml(id)}"]`)?.classList.add('active');
+
+                // 在预览区显示
+                state.currentImage = item.image_url;
+                state.currentFilename = item.filename;
+                state.currentImages = [];
+                state.currentImageUrls = [];
+                state.currentFilenames = [];
+                hideGallery();
+                const typeLabel = item.type === 'generate' ? '✨ 生成' : '✏️ 编辑';
+                const title = `${typeLabel} · ${item.size || ''} · ${item.elapsed || ''}s`;
+                showImage(item.image_url, title, item.elapsed, true);
+            } catch (e) {
+                showToast('加载失败: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteHistoryItem(id) {
+            if (!confirm('确定删除这条记录及对应图片文件？')) return;
+
+            try {
+                const resp = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showToast('已删除', 'success');
+                    refreshHistory();
+                    // 如果当前预览的就是这条记录，清除预览
+                    if (state.currentImage && state.currentImage.includes(id)) {
+                        clearPreview();
+                    }
+                } else {
+                    showToast(data.detail || '删除失败', 'error');
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            }
+        }
+
+        async function clearAllHistory() {
+            if (!confirm('确定清除全部历史记录并删除所有图片文件？此操作不可恢复。')) return;
+
+            try {
+                const resp = await fetch('/api/history', { method: 'DELETE' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showToast(data.message || '已清除', 'success');
+                    refreshHistory();
+                    clearPreview();
+                } else {
+                    showToast(data.detail || '清除失败', 'error');
+                }
+            } catch (e) {
+                showToast('清除失败: ' + e.message, 'error');
+            }
+        }
+
+        // 页面加载时自动刷新历史
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshHistory();
+        });
+    </script>
+</body>
+</html>
